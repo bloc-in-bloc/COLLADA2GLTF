@@ -27,7 +27,7 @@ int main(int argc, const char **argv) {
 	bool separateTextures;
 
 	Parser* parser = new Parser();
-	parser->name("COLLADA2GLTF")->usage("./COLLADA2GLTF input.dae output.gltf [options]");
+	parser->name("COLLADA2GLTF_BIB-1.0")->usage("./COLLADA2GLTF input.dae output.gltf [options]");
 
 	parser->define("i", &options->inputPath)
 		->alias("input")
