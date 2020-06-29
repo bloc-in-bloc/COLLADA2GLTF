@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    tags:
+      - build-macos-*
+
+jobs:
+  macos:
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install
+      run: |
+        brew install cmake pkgconfig pcre libpng
+        git submodule init
+        git submodule update
+    - name: Build
+      run: |
+        cmake -G Xcode
+        xcodebuild -target COLLADA2GLTF-bin
+        mkdir build
+        mv Debug/COLLADA2GLTF-bin build/COLLADA2GLTF-bin
+        mv Debug/libCOLLADA2GLTF.a build/libCOLLADA2GLTF.a
+        zip -r build.zip build
+    - uses: actions/upload-artifact@v1
+      with:
+        name: build
+        path: build.zip
