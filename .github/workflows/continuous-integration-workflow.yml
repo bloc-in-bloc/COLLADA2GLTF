@@ -1,0 +1,153 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build-linux:
+    name: build-linux
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 8
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install
+        run: |
+          sudo apt-get install build-essential
+
+      - name: Run cmake
+        run: |
+          cd ${{ github.workspace }}
+          mkdir build
+          cd build
+          cmake .. -Dtest=ON
+
+      - name: Build
+        run: |
+          cd build
+          make
+
+      - name: Run unit tests
+        run: |
+          cd build
+          make test
+
+      - name: Run integration tests
+        run: |
+          cd test/js
+          npm install
+          npm run test
+
+      - name: Upload built executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: COLLADA2GLTF-linux
+          path: ./build/COLLADA2GLTF-bin
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}-linux" >> $GITHUB_OUTPUT
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}-linux
+          release_name: ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Release ${{ steps.get_version.outputs.VERSION }} ${{ steps.date.outputs.date }}
+          draft: false
+          prerelease: false
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/COLLADA2GLTF-bin
+          asset_name: COLLADA2GLTF-linux-${{ steps.get_version.outputs.VERSION }}
+          asset_content_type: application/octet-stream
+
+  build-osx:
+    name: build-osx
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run cmake
+        run: |
+          cd ${{ github.workspace }}
+          mkdir build
+          cd build
+          cmake .. -Dtest=ON
+
+      - name: Build
+        run: |
+          cd build
+          make
+
+      - name: Run unit tests
+        run: |
+          cd build
+          make test
+
+      - name: Upload built executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: COLLADA2GLTF-osx
+          path: ./build/COLLADA2GLTF-bin
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}-macos" >> $GITHUB_OUTPUT
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}-osx
+          release_name: ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Release ${{ steps.get_version.outputs.VERSION }} ${{ steps.date.outputs.date }}
+          draft: false
+          prerelease: false
+
+      - if: startsWith(github.ref, 'refs/tags/')  # Release step, only runs on tag builds
+        name: (Release) Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/COLLADA2GLTF-bin
+          asset_name: COLLADA2GLTF-osx-${{ steps.get_version.outputs.VERSION }}
+          asset_content_type: application/octet-stream
